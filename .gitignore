@@ -1,0 +1,6 @@
+.pio/
+shots/
+.DS_Store
+.venv/
+backup/
+*.bin

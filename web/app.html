@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Duel Dials">
+<meta name="theme-color" content="#0d0d12">
+<title>Duel Dials</title>
+<style>
+:root {
+  --bg: #0d0d12; --surface: #1a1a22; --surface2: #262631; --line: #33333f;
+  --text: #f4f4f6; --muted: #9a9aa8; --accent: #4da3ff; --good: #3ddc84; --bad: #ff5a5f; --gold: #f5c542;
+  --radius: 16px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #f3efe6; --surface: #ffffff; --surface2: #ebe5d9; --line: #d8d0c2; --text: #18181b;
+          --muted: #6b6b70; --accent: #1f6fd1; --good: #1e9e57; --bad: #d93a3f; --gold: #a87400; }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { padding: env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom)); }
+button { font: inherit; color: inherit; background: var(--surface2); border: 0; border-radius: 12px;
+  padding: 10px 12px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
+button:active { filter: brightness(1.25); }
+button.primary { background: var(--accent); color: #fff; font-weight: 600; }
+button.danger { background: color-mix(in srgb, var(--bad) 22%, var(--surface2)); color: var(--bad); }
+button.on { background: var(--accent); color: #fff; }
+input, select { font: inherit; color: var(--text); background: var(--surface2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px; min-height: 44px; width: 100%; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 16px 8px;
+  display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+header h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+header .sub { color: var(--muted); font-size: 14px; flex: 1; text-align: right; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none; }
+.dot.off { background: var(--bad); }
+main { padding: 12px 16px; max-width: 900px; margin: 0 auto; }
+nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+nav button { background: none; border-radius: 0; min-height: 60px; color: var(--muted); font-size: 13px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; }
+nav button span { font-size: 20px; }
+nav button.active { color: var(--accent); }
+.hidden { display: none !important; }
+.banner { background: var(--surface); border: 1px solid var(--gold); color: var(--gold); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 12px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.banner.err { border-color: var(--bad); color: var(--bad); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border-radius: 12px; padding: 2px; }
+.stepper button { min-width: 44px; padding: 8px; background: none; }
+.stepper b { min-width: 30px; text-align: center; }
+.stepper small { color: var(--muted); padding-left: 8px; }
+.players { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .players { grid-template-columns: 1fr 1fr; } }
+.card { background: var(--surface); border-radius: var(--radius); overflow: hidden; border-left: 8px solid var(--pc); }
+.card.out { opacity: .55; }
+.card.win { box-shadow: 0 0 0 2px var(--gold); }
+.card .top { display: flex; align-items: center; gap: 10px; padding: 12px 12px 4px; }
+.card .who { flex: 1; min-width: 0; }
+.card .name { font-weight: 700; font-size: 18px; color: var(--pc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .tags { color: var(--muted); font-size: 13px; }
+.card .life { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; background: none;
+  padding: 4px 8px; min-width: 90px; text-align: right; }
+.card .life small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+.card .btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 12px 10px; }
+.card .btns button { font-weight: 700; font-size: 18px; }
+.card .more { width: 100%; border-radius: 0; background: var(--surface2); color: var(--muted); font-size: 14px; min-height: 36px; }
+.progress { height: 6px; background: var(--surface2); margin: 0 12px 10px; border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--pc); }
+.detail { padding: 8px 12px 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.row .lbl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .lbl i { font-style: normal; display: inline-block; width: 26px; text-align: center; }
+.row .val { min-width: 34px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row .val.lethal { color: var(--bad); }
+.row button { min-width: 44px; padding: 6px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.section { background: var(--surface); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.section h2 { margin: 0 0 10px; font-size: 15px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { min-width: 52px; }
+.hint { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+.plist { display: grid; gap: 8px; }
+.prow { display: flex; gap: 8px; align-items: center; }
+.swatch { width: 44px; height: 44px; border-radius: 12px; flex: none; border: 2px solid rgba(255,255,255,.25); padding: 0; }
+.log { list-style: none; padding: 0; margin: 0; }
+.log li { display: flex; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.log time { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 42px; }
+.log .pn { font-weight: 700; color: var(--pc); }
+.log .neg { color: var(--bad); font-weight: 700; }
+.log .pos { color: var(--good); font-weight: 700; }
+.log li.big { color: var(--gold); font-weight: 600; }
+.log li.sep { color: var(--muted); font-size: 14px; }
+.seats { display: flex; gap: 8px; flex-wrap: wrap; }
+.seat { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  border: 3px solid var(--pc); color: var(--pc); }
+.seat.has { background: var(--pc); color: #fff; }
+.seat.me { outline: 3px solid var(--text); outline-offset: 2px; }
+.setting { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); }
+.setting:last-child { border-bottom: 0; }
+.setting span { flex: 1; }
+.setting select, .setting input[type=range] { width: auto; min-width: 120px; }
+.seg { display: inline-flex; background: var(--surface2); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { min-height: 38px; padding: 6px 12px; background: none; }
+.seg button.on { background: var(--accent); color: #fff; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--surface); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+.sheet h3 { margin: 0 0 12px; }
+.palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+.palette button { aspect-ratio: 1; min-height: 0; border-radius: 12px; position: relative; font-size: 11px; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7); display: flex; align-items: flex-end; justify-content: center; padding: 4px; }
+.palette button.sel { outline: 3px solid var(--text); outline-offset: 2px; }
+.palette button.used::after { content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.keypad button { font-size: 22px; font-weight: 700; min-height: 54px; }
+.amount { font-size: 40px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; min-height: 52px; }
+.empty { color: var(--muted); text-align: center; padding: 30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="dot off" id="dot"></div>
+  <h1>Duel Dials</h1>
+  <div class="sub" id="sub">Connecting…</div>
+</header>
+
+<main>
+  <section id="tab-table">
+    <div id="banner"></div>
+    <div class="bar" id="gamebar"></div>
+    <div class="players" id="players"></div>
+  </section>
+
+  <section id="tab-new" class="hidden">
+    <div class="section"><h2>Game</h2><div class="chips" id="ngSystem"></div>
+      <div class="chips" id="ngFormat" style="margin-top:8px"></div></div>
+    <div class="section"><h2>Players</h2><div class="chips" id="ngPlayers"></div>
+      <div id="ngLifeWrap" style="margin-top:12px"><label class="hint" id="ngLifeLbl">Starting life</label>
+        <input id="ngLife" type="number" inputmode="numeric" min="1" max="32000"></div>
+      <div id="ngPartnersWrap" class="row" style="margin-top:8px"><span class="lbl">Partners (two commanders each)</span>
+        <button id="ngPartners">Off</button></div>
+      <p class="hint" id="ngGoal"></p></div>
+    <div class="section"><h2>Names and colours</h2><div class="plist" id="ngNames"></div>
+      <p class="hint">Up to 8 letters. Leave a name empty for “Player N”.</p></div>
+    <button class="primary" id="ngStart" style="width:100%;min-height:54px">Start game on all dials</button>
+    <p class="hint" style="text-align:center">This replaces the current game on every linked dial.</p>
+  </section>
+
+  <section id="tab-log" class="hidden">
+    <div class="bar"><button id="logUndo">↶ Undo last change</button><span class="hint" id="logInfo" style="margin:0"></span></div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section id="tab-dial" class="hidden">
+    <div class="section"><h2>Linked dials</h2><div id="linkInfo"></div><div class="seats" id="seats" style="margin-top:10px"></div></div>
+    <div class="section"><h2>This dial</h2><div id="settings"></div>
+      <p class="hint">These settings belong to the dial whose Wi-Fi you're on. Join another dial's Wi-Fi to change that one.</p></div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="table" class="active"><span>◎</span>Table</button>
+  <button data-tab="new"><span>＋</span>New game</button>
+  <button data-tab="log"><span>☰</span>Log</button>
+  <button data-tab="dial"><span>⚙</span>Dial</button>
+</nav>
+
+<div id="sheet"></div>
+
+<script>
+const PALETTE = ["#E5484D","#B3213A","#F76B15","#F5A524","#EEC62B","#94C93D","#30A46C","#0B7E5A","#12A594","#22B8CF",
+  "#5AB2F7","#3E8EF7","#1F3F9E","#5B5BD6","#8E4EC6","#6A2D9E","#D23FBF","#F27BA6","#8D5B3A","#8C8C96"];
+const PALETTE_NAMES = ["Red","Crimson","Orange","Amber","Yellow","Lime","Green","Emerald","Teal","Cyan","Sky","Blue",
+  "Navy","Indigo","Violet","Purple","Magenta","Pink","Brown","Gray"];
+// Formats in firmware order.
+const FORMATS = [
+  {name:"Standard", sys:0, life:20, min:1, max:6, def:2},
+  {name:"Commander", sys:0, life:40, min:1, max:6, def:4},
+  {name:"Archenemy", sys:0, life:20, min:3, max:6, def:4},
+  {name:"Emperor", sys:0, life:20, min:6, max:6, def:6},
+  {name:"Yu-Gi-Oh!", sys:1, life:8000, min:2, max:4, def:2},
+  {name:"Lorcana", sys:2, life:0, min:2, max:4, def:2},
+  {name:"Pokémon", sys:3, life:6, min:2, max:2, def:2},
+  {name:"Riftbound", sys:4, life:0, min:2, max:4, def:2},
+  {name:"Riftbound 2v2", sys:4, life:0, min:4, max:4, def:4},
+];
+const SYSTEMS = [
+  {name:"Magic", formats:[1,0,2,3]}, {name:"Yu-Gi-Oh!", formats:[4]}, {name:"Lorcana", formats:[5]},
+  {name:"Pokémon", formats:[6]}, {name:"Riftbound", formats:[7,8]}];
+const LIFE_NAME = ["Life","LP","Lore","Prizes","Points"];
+const COUNTERS = [["☠","Poison",10],["⚡","Energy",0],["★","Experience",0],["☢","Radiation",0],["➤","Speed",4],["🎟","Tickets",0]];
+const OUT = ["","out of life","poisoned","commander damage","conceded"];
+const SLEEP = [0,1,2,5,10,30];
+const LK_LIFE = 0, LK_RACE = 1, LK_PRIZES = 2;
+
+let S = null, logVersion = 0, logRows = [], open = new Set(), tab = "table", busy = false, failures = 0;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pcol = i => PALETTE[(S.p[i] ? S.p[i].color : i) % 20];
+const pname = i => (i >= 0 && S.p[i]) ? S.p[i].name : "?";
+
+// ---------------------------------------------------------------- network
+async function act(params) {
+  try {
+    const r = await fetch("/act", {method: "POST", body: new URLSearchParams(params)});
+    if (r.ok) { take(await r.json()); }
+  } catch (e) { offline(); }
+}
+async function poll() {
+  if (document.hidden || busy) return;
+  busy = true;
+  try {
+    const r = await fetch("/state?lv=" + logVersion, {cache: "no-store"});
+    if (r.ok) take(await r.json());
+  } catch (e) { offline(); }
+  busy = false;
+}
+function offline() {
+  if (++failures < 2) return;
+  $("dot").classList.add("off");
+  $("sub").textContent = "Not connected to a dial";
+}
+let lastJson = "";
+function take(s) {
+  failures = 0;
+  const json = JSON.stringify(s);
+  if (json === lastJson) { $("dot").classList.remove("off"); return; }  // unchanged: keep the DOM (and taps) steady
+  lastJson = json;
+  const newGame = !S || S.id !== s.id;
+  S = s;
+  if (s.log) { logRows = s.log; logVersion = s.logVersion; }
+  $("dot").classList.remove("off");
+  $("sub").textContent = `${FORMATS[S.fmt].name} · ${S.n} player${S.n === 1 ? "" : "s"}`;
+  if (newGame) { open.clear(); if (!ngTouched) ngFromGame(); }
+  render();
+}
+setInterval(poll, 700);
+document.addEventListener("visibilitychange", poll);
+
+// ---------------------------------------------------------------- tabs
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x === b));
+  ["table","new","log","dial"].forEach(t => $("tab-" + t).classList.toggle("hidden", t !== tab));
+  if (tab === "new") ngRender();
+  render();
+});
+
+function render() {
+  if (!S) return;
+  if (tab === "table") renderTable();
+  if (tab === "log") renderLog();
+  if (tab === "dial") renderDial();
+}
+
+// ---------------------------------------------------------------- table
+function lifeButtons(s) {
+  if (S.kind === LK_RACE) return [[-1,"−1"],[1,"+1"],[2,"+2"],[3,"+3"]];
+  if (S.kind === LK_PRIZES) return [[1,"+1"],[-1,"Take 1"],[-2,"Take 2"],[-3,"Take 3"]];
+  const st = S.step;
+  return st > 1 ? [[-10*st,"−"+10*st],[-st,"−"+st],[st,"+"+st],[10*st,"+"+10*st]] : [[-5,"−5"],[-1,"−1"],[1,"+1"],[5,"+5"]];
+}
+
+function renderTable() {
+  const magic = S.sys === 0;
+  $("banner").innerHTML = S.over ? `<div class="banner">🏆 ${esc(S.result)} <button class="primary" style="margin-left:auto" onclick="playAgain()">Play again</button></div>` : "";
+  let bar = `<div class="stepper"><small>Turn</small><button onclick="act({a:'turn',d:-1})">−</button><b>${S.turn}</b><button onclick="act({a:'turn',d:1})">+</button></div>`;
+  if (magic) {
+    bar += `<button onclick="act({a:'dn'})">${["Day/Night –","☀ Day","☾ Night"][S.dn]}</button>`;
+    bar += `<div class="stepper"><small>Storm</small><button onclick="act({a:'storm',d:-1})">−</button><b>${S.storm}</b><button onclick="act({a:'storm',d:1})">+</button></div>`;
+  }
+  bar += `<button onclick="act({a:'undo'})">↶ Undo</button><button onclick="act({a:'spin'})">🎯 Who goes first</button>`;
+  $("gamebar").innerHTML = bar;
+
+  const btns = lifeButtons();
+  let html = "";
+  S.p.forEach((p, i) => {
+    const won = S.over && (S.win >> i) & 1;
+    let tags = [];
+    if (p.role === "A") tags.push("Archenemy");
+    if (p.role === "E") tags.push("Emperor");
+    if (p.team >= 0) tags.push("Team " + "AB"[p.team]);
+    if (S.monarch === i) tags.push("👑 Monarch");
+    if (S.init === i) tags.push("⚔ Initiative");
+    if (p.dial) tags.push("◉ dial");
+    if (p.out) tags.push("Out: " + OUT[p.out]);
+    if (won) tags.push("🏆 Winner");
+    let unit = LIFE_NAME[S.sys];
+    if (S.kind === LK_RACE) unit = p.team >= 0 ? `team ${teamScore(p.team)}/${S.goal}` : `${LIFE_NAME[S.sys].toLowerCase()} of ${S.goal}`;
+    if (S.kind === LK_PRIZES) unit = "prizes left";
+    const prog = S.kind === LK_RACE ? Math.min(1, (p.team >= 0 ? teamScore(p.team) : p.life) / S.goal)
+               : S.kind === LK_PRIZES ? (S.startLife - p.life) / Math.max(1, S.startLife) : -1;
+    html += `<div class="card ${p.out ? "out" : ""} ${won ? "win" : ""}" style="--pc:${pcol(i)}">
+      <div class="top"><div class="who"><div class="name">${esc(p.name)}</div><div class="tags">${tags.join(" · ") || "&nbsp;"}</div></div>
+      <button class="life" onclick="lifeSheet(${i})">${p.life}<small>${esc(unit)}</small></button></div>
+      ${prog >= 0 ? `<div class="progress"><i style="width:${(prog * 100).toFixed(0)}%"></i></div>` : ""}
+      <div class="btns">${btns.map(([d, l]) => `<button onclick="act({a:'life',p:${i},d:${d}})">${l}</button>`).join("")}</div>
+      ${open.has(i) ? detail(i) : ""}
+      <button class="more" onclick="toggle(${i})">${open.has(i) ? "Less ▲" : (magic ? "Damage, counters & more ▼" : "Name, colour & more ▼")}</button>
+    </div>`;
+  });
+  $("players").innerHTML = html;
+}
+
+function teamScore(t) { return S.p.reduce((a, p) => a + (p.team === t ? p.life : 0), 0); }
+function toggle(i) { open.has(i) ? open.delete(i) : open.add(i); renderTable(); }
+
+function stepRow(icon, label, val, cls, minus, plus) {
+  return `<div class="row"><span class="lbl"><i>${icon}</i>${esc(label)}</span>
+    <button onclick="${minus}">−</button><span class="val ${cls}">${val}</span><button onclick="${plus}">+</button></div>`;
+}
+
+function detail(i) {
+  const p = S.p[i];
+  let h = `<div class="detail">`;
+  if (S.sys === 0) {
+    S.p.forEach((q, j) => {
+      if (j === i) return;
+      for (let w = 0; w < (S.partners ? 2 : 1); w++) {
+        const v = p.cmd[j][w];
+        const label = `Cmdr ${q.name}${S.partners ? " " + "AB"[w] : ""}`;
+        h += stepRow(`<span style="color:${pcol(j)}">🛡</span>`, label, v, v >= 21 ? "lethal" : "",
+          `act({a:'cmd',p:${i},s:${j},w:${w},d:-1})`, `act({a:'cmd',p:${i},s:${j},w:${w},d:1})`);
+      }
+    });
+    COUNTERS.forEach(([ic, name, lethal], c) => {
+      const v = p.c[c];
+      h += stepRow(ic, name, c === 4 && v >= 4 ? "MAX" : v, lethal && c === 0 && v >= lethal ? "lethal" : "",
+        `act({a:'ctr',p:${i},c:${c},d:-1})`, `act({a:'ctr',p:${i},c:${c},d:1})`);
+    });
+    if (p.role === "A") h += stepRow("📜", "Schemes", S.schemes, "", `act({a:'schemes',d:-1})`, `act({a:'schemes',d:1})`);
+  }
+  h += `<div class="toggles">`;
+  if (S.sys === 0) {
+    h += `<button class="${S.monarch === i ? "on" : ""}" onclick="act({a:'monarch',p:${i}})">👑 Monarch</button>`;
+    h += `<button class="${S.init === i ? "on" : ""}" onclick="act({a:'init',p:${i}})">⚔ Initiative</button>`;
+  }
+  h += `<button onclick="nameSheet(${i})">✎ Name & colour</button>`;
+  h += `<button class="${p.conceded ? "" : "danger"}" onclick="act({a:'concede',p:${i}})">${p.conceded ? "↩ Rejoin" : "🏳 Concede"}</button>`;
+  h += `</div></div>`;
+  return h;
+}
+
+function playAgain() {
+  const f = FORMATS[S.fmt];
+  const params = {a: "new", f: S.fmt, n: S.n, partners: S.partners, life: S.kind === LK_RACE ? 0 : S.startLife};
+  S.p.forEach((p, i) => { params["n" + i] = p.custom; params["c" + i] = p.color; });
+  act(params);
+}
+
+// ---------------------------------------------------------------- sheets
+function sheet(html) {
+  $("sheet").innerHTML = `<div class="sheet-bg" onclick="if(event.target===this)closeSheet()"><div class="sheet">${html}</div></div>`;
+}
+function closeSheet() { $("sheet").innerHTML = ""; }
+
+let amount = "";
+function lifeSheet(i) {
+  amount = "";
+  const race = S.kind === LK_RACE, prizes = S.kind === LK_PRIZES;
+  const keys = [1,2,3,4,5,6,7,8,9,"⌫",0,"C"].map(k => `<button onclick="key('${k}')">${k}</button>`).join("");
+  sheet(`<h3 style="color:${pcol(i)}">${esc(S.p[i].name)} · ${S.p[i].life} ${LIFE_NAME[S.sys]}</h3>
+    <div class="amount" id="amt">0</div><div class="keypad">${keys}</div>
+    <div class="grid2">
+      <button class="danger" onclick="applyAmount(${i},-1)">${race ? "− Remove" : prizes ? "Take prizes" : "− Damage"}</button>
+      <button class="primary" onclick="applyAmount(${i},1)">${race ? "+ Gain" : prizes ? "+ Put back" : "+ Gain"}</button>
+    </div>`);
+}
+function key(k) {
+  if (k === "C") amount = "";
+  else if (k === "⌫") amount = amount.slice(0, -1);
+  else if (amount.length < 5) amount = (amount + k).replace(/^0+/, "");
+  $("amt").textContent = amount || "0";
+}
+function applyAmount(i, sign) {
+  const v = parseInt(amount || "0", 10);
+  if (v) act({a: "life", p: i, d: sign * v});
+  closeSheet();
+}
+
+function paletteHtml(sel, player, onpick) {
+  const used = new Set(S.p.map((p, j) => j !== player ? p.color : -1));
+  return `<div class="palette">${PALETTE.map((c, k) =>
+    `<button style="background:${c}" class="${k === sel ? "sel" : ""} ${used.has(k) ? "used" : ""}" onclick="${onpick}(${k})" aria-label="${PALETTE_NAMES[k]}">${PALETTE_NAMES[k]}</button>`).join("")}</div>`;
+}
+let sheetPlayer = -1;
+function nameSheet(i) {
+  sheetPlayer = i;
+  sheet(`<h3>Player ${i + 1}</h3>
+    <input id="nm" maxlength="8" placeholder="Player ${i + 1}" value="${esc(S.p[i].custom)}" autocomplete="off">
+    ${paletteHtml(S.p[i].color, i, "pickColor")}
+    <div class="grid2"><button onclick="closeSheet()">Cancel</button><button class="primary" onclick="saveName()">Save name</button></div>`);
+}
+function pickColor(k) { act({a: "color", p: sheetPlayer, v: k}); closeSheet(); }
+function saveName() { act({a: "name", p: sheetPlayer, v: $("nm").value}); closeSheet(); }
+
+// ---------------------------------------------------------------- new game
+let ng = {sys: 0, fmt: 1, n: 4, life: 40, partners: 0, names: ["","","","","",""], colors: [0,11,6,3,14,8]}, ngTouched = false;
+function ngFromGame() {
+  ng.fmt = S.fmt; ng.sys = FORMATS[S.fmt].sys; ng.n = S.n; ng.partners = S.partners;
+  ng.life = S.kind === LK_RACE ? FORMATS[S.fmt].life : S.startLife;
+  S.p.forEach((p, i) => { ng.names[i] = p.custom; ng.colors[i] = p.color; });
+  if (tab === "new") ngRender();
+}
+function ngSetFormat(f) {
+  ngTouched = true;
+  ng.fmt = f; ng.sys = FORMATS[f].sys; ng.life = FORMATS[f].life;
+  ng.n = Math.min(FORMATS[f].max, Math.max(FORMATS[f].min, ng.n));
+  if (FORMATS[f].min === FORMATS[f].max) ng.n = FORMATS[f].min;
+  ngRender();
+}
+function ngRender() {
+  $("ngSystem").innerHTML = SYSTEMS.map((s, k) =>
+    `<button class="${ng.sys === k ? "on" : ""}" onclick="ngSetFormat(${s.formats[0]})">${s.name}</button>`).join("");
+  const fmts = SYSTEMS[ng.sys].formats;
+  $("ngFormat").innerHTML = fmts.length > 1 ? fmts.map(f =>
+    `<button class="${ng.fmt === f ? "on" : ""}" onclick="ngSetFormat(${f})">${FORMATS[f].name}</button>`).join("") : "";
+  const F = FORMATS[ng.fmt];
+  let chips = "";
+  for (let n = F.min; n <= F.max; n++) chips += `<button class="${ng.n === n ? "on" : ""}" onclick="ngTouched=true;ng.n=${n};ngRender()">${n}</button>`;
+  $("ngPlayers").innerHTML = chips;
+  const race = F.sys === 2 || F.sys === 4;
+  $("ngLifeWrap").classList.toggle("hidden", race);
+  $("ngLifeLbl").textContent = F.sys === 3 ? "Prize cards" : F.sys === 1 ? "Starting Life Points" : "Starting life";
+  $("ngLife").value = ng.life;
+  $("ngPartnersWrap").classList.toggle("hidden", F.sys !== 0);
+  $("ngPartners").textContent = ng.partners ? "On" : "Off";
+  $("ngPartners").className = ng.partners ? "on" : "";
+  $("ngGoal").textContent = ({0: ng.fmt === 2 ? "The Archenemy (player 1) starts with 20 more life." : ng.fmt === 3 ? "Two teams of three; each emperor sits in the middle." : "",
+    1: "Last duelist above 0 LP wins.", 2: "First to 20 lore wins.", 3: "Take all your prize cards to win.",
+    4: ng.fmt === 8 ? "Teams P1+P2 vs P3+P4 race to 11 points." : "First to 8 points wins."})[F.sys];
+  let rows = "";
+  for (let i = 0; i < ng.n; i++) {
+    rows += `<div class="prow"><button class="swatch" style="background:${PALETTE[ng.colors[i]]}" onclick="ngColor(${i})" aria-label="Colour"></button>
+      <input maxlength="8" placeholder="Player ${i + 1}" value="${esc(ng.names[i])}" oninput="ngTouched=true;ng.names[${i}]=this.value" autocomplete="off"></div>`;
+  }
+  $("ngNames").innerHTML = rows;
+}
+$("ngLife").oninput = e => { ngTouched = true; ng.life = parseInt(e.target.value || "0", 10); };
+$("ngPartners").onclick = () => { ngTouched = true; ng.partners = ng.partners ? 0 : 1; ngRender(); };
+let ngColorFor = -1;
+function ngColor(i) {
+  ngColorFor = i;
+  sheet(`<h3>Colour for ${esc(ng.names[i] || "Player " + (i + 1))}</h3>${paletteHtml(ng.colors[i], -1, "ngPick")}<button onclick="closeSheet()" style="width:100%">Cancel</button>`);
+}
+function ngPick(k) { ngTouched = true; ng.colors[ngColorFor] = k; closeSheet(); ngRender(); }
+$("ngStart").onclick = async () => {
+  if (S && !S.over && !confirm("Start a new game? This replaces the current game on every linked dial.")) return;
+  const params = {a: "new", f: ng.fmt, n: ng.n, partners: ng.partners, life: ng.life || FORMATS[ng.fmt].life};
+  for (let i = 0; i < 6; i++) { params["n" + i] = ng.names[i] || ""; params["c" + i] = ng.colors[i]; }
+  await act(params);
+  ngTouched = false;
+  document.querySelector('nav button[data-tab="table"]').click();
+};
+
+// ---------------------------------------------------------------- log
+function fmtTime(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function who(i) { return i >= 0 && S.p[i] ? `<span class="pn" style="--pc:${pcol(i)}">${esc(S.p[i].name)}</span>` : ""; }
+function signed(d) { return `<span class="${d < 0 ? "neg" : "pos"}">${d > 0 ? "+" : ""}${d}</span>`; }
+function logLine([t, kind, p, src, which, d, after]) {
+  const unit = LIFE_NAME[S.sys].toLowerCase();
+  switch (kind) {
+    case 0: return ["sep", `New game: ${FORMATS[src] ? FORMATS[src].name : "?"}, ${p} player${p === 1 ? "" : "s"}`];
+    case 1: return ["", `${who(p)} ${signed(d)} ${unit} → ${after}`];
+    case 2: return ["", `${who(p)} ${signed(d)} commander damage from ${who(src)}${S.partners ? " " + "AB"[which] : ""} → ${after}`];
+    case 3: return ["", `${who(p)} ${signed(d)} ${COUNTERS[src] ? COUNTERS[src][1].toLowerCase() : "counter"} → ${after}`];
+    case 4: return ["big", `${who(p)} ${after ? "conceded" : "rejoined"}`];
+    case 5: return ["big", `${who(p)} is out (${OUT[src] || "out"})`];
+    case 6: return ["", p >= 0 ? `${who(p)} became the monarch 👑` : "No monarch"];
+    case 7: return ["", p >= 0 ? `${who(p)} took the initiative ⚔` : "No initiative"];
+    case 8: return ["sep", `Turn ${after}`];
+    case 9: return ["", `Schemes ${signed(d)} → ${after}`];
+    case 10: return ["big", `🏆 ${esc(S.result || "Game over")}`];
+    case 11: return ["", `Player ${p + 1} is now ${who(p)}`];
+    case 12: return ["sep", "↶ Undo"];
+  }
+  return ["", "?"];
+}
+function renderLog() {
+  const rows = logRows.slice().reverse();
+  $("logInfo").textContent = rows.length ? `${rows.length} entries` : "";
+  $("log").innerHTML = rows.length ? rows.map(r => {
+    const [cls, txt] = logLine(r);
+    return `<li class="${cls}"><time>${fmtTime(r[0])}</time><div>${txt}</div></li>`;
+  }).join("") : `<li class="empty">Nothing yet. Changes from any dial or this phone show up here.</li>`;
+}
+$("logUndo").onclick = () => act({a: "undo"});
+
+// ---------------------------------------------------------------- dial settings
+function seg(key, val, opts) {
+  return `<div class="seg">${opts.map(([v, l]) => `<button class="${val === v ? "on" : ""}" onclick="act({a:'set',k:'${key}',v:${v}})">${l}</button>`).join("")}</div>`;
+}
+function renderDial() {
+  const d = S.dial;
+  $("linkInfo").innerHTML = d.room
+    ? `Room <b>${d.room}</b> · ${d.peers} other dial${d.peers === 1 ? "" : "s"} linked · this dial is <b>${d.seat ? "P" + d.seat : "no seat"}</b> (${d.mac})`
+    : `This dial (${d.mac}) isn't linked. Pick a room below to share the game with other dials.`;
+  let seats = "";
+  for (let i = 0; i < S.n; i++) {
+    const has = d.seat === i + 1 || (d.peerSeats >> i) & 1;
+    seats += `<div class="seat ${has ? "has" : ""} ${d.seat === i + 1 ? "me" : ""}" style="--pc:${pcol(i)}" title="${esc(S.p[i].name)}">P${i + 1}</div>`;
+  }
+  $("seats").innerHTML = seats;
+  const roomOpts = [`<option value="0"${d.room === 0 ? " selected" : ""}>Off</option>`];
+  for (let r = 1; r <= 9; r++) roomOpts.push(`<option value="${r}"${d.room === r ? " selected" : ""}>Room ${r}</option>`);
+  const seatOpts = [`<option value="0"${d.seat === 0 ? " selected" : ""}>None</option>`];
+  for (let s = 1; s <= S.n; s++) seatOpts.push(`<option value="${s}"${d.seat === s ? " selected" : ""}>P${s}</option>`);
+  const sleepOpts = SLEEP.map(m => `<option value="${m}"${d.sleep === m ? " selected" : ""}>${m ? m + " min" : "Never"}</option>`).join("");
+  const el = $("settings");
+  if (el.contains(document.activeElement)) return;  // don't redraw under an open picker
+  el.innerHTML = `
+    <div class="setting"><span>Room</span><select onchange="setRoom(this.value)">${roomOpts.join("")}</select></div>
+    <div class="setting"><span>This dial is player</span><select onchange="act({a:'set',k:'seat',v:this.value})">${seatOpts.join("")}</select></div>
+    <div class="setting"><span>Theme</span>${seg("theme", d.theme, [[0, "Dark"], [1, "Light"]])}</div>
+    <div class="setting"><span>Brightness</span><input type="range" min="10" max="100" step="5" value="${d.bright}" onchange="act({a:'set',k:'bright',v:this.value})"></div>
+    <div class="setting"><span>LED ring</span>${seg("leds", d.leds, [[0, "Off"], [1, "On"]])}</div>
+    <div class="setting"><span>Screen off</span><select onchange="act({a:'set',k:'sleep',v:this.value})">${sleepOpts}</select></div>
+    <div class="setting"><span>Dial direction</span>${seg("reverse", d.reverse, [[0, "Normal"], [1, "Reversed"]])}</div>
+    <div class="setting"><span>Turn readout to player</span>${seg("face", d.face, [[0, "Off"], [1, "On"]])}</div>
+    <div class="setting"><span>Commander damage hits life</span>${seg("cmdLife", d.cmdLife, [[0, "Off"], [1, "On"]])}</div>`;
+}
+function setRoom(v) {
+  if (+v && !confirm(`Join room ${v}? If other dials are already in it, this dial takes on their game.`)) { renderDial(); return; }
+  act({a: "set", k: "room", v});
+}
+
+poll();
+</script>
+</body>
+</html>
